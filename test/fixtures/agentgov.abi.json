@@ -1,0 +1,720 @@
+{
+ "version": "eosio::abi/1.2",
+ "types": [],
+ "structs": [
+  {
+   "name": "addvendor",
+   "base": "",
+   "fields": [
+    {
+     "name": "network",
+     "type": "string"
+    },
+    {
+     "name": "pay_to",
+     "type": "string"
+    },
+    {
+     "name": "label",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "agent_row",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "owner",
+     "type": "name"
+    },
+    {
+     "name": "model_hash",
+     "type": "checksum256"
+    },
+    {
+     "name": "label",
+     "type": "string"
+    },
+    {
+     "name": "status",
+     "type": "uint8"
+    },
+    {
+     "name": "note",
+     "type": "string"
+    },
+    {
+     "name": "registered",
+     "type": "time_point_sec"
+    }
+   ]
+  },
+  {
+   "name": "approve",
+   "base": "",
+   "fields": [
+    {
+     "name": "approver",
+     "type": "name"
+    },
+    {
+     "name": "id",
+     "type": "uint64"
+    }
+   ]
+  },
+  {
+   "name": "audit_row",
+   "base": "",
+   "fields": [
+    {
+     "name": "id",
+     "type": "uint64"
+    },
+    {
+     "name": "auditor",
+     "type": "name"
+    },
+    {
+     "name": "root",
+     "type": "checksum256"
+    },
+    {
+     "name": "from_id",
+     "type": "uint64"
+    },
+    {
+     "name": "to_id",
+     "type": "uint64"
+    },
+    {
+     "name": "records",
+     "type": "uint32"
+    },
+    {
+     "name": "total",
+     "type": "uint64"
+    },
+    {
+     "name": "problems",
+     "type": "uint32"
+    },
+    {
+     "name": "note",
+     "type": "string"
+    },
+    {
+     "name": "created",
+     "type": "time_point_sec"
+    }
+   ]
+  },
+  {
+   "name": "auth_result",
+   "base": "",
+   "fields": [
+    {
+     "name": "id",
+     "type": "uint64"
+    },
+    {
+     "name": "status",
+     "type": "uint8"
+    }
+   ]
+  },
+  {
+   "name": "authorize",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "vendor_id",
+     "type": "uint64"
+    },
+    {
+     "name": "amount",
+     "type": "uint64"
+    },
+    {
+     "name": "params_hash",
+     "type": "checksum256"
+    },
+    {
+     "name": "nonce",
+     "type": "uint64"
+    }
+   ]
+  },
+  {
+   "name": "budget_info",
+   "base": "",
+   "fields": [
+    {
+     "name": "per_tx_max",
+     "type": "uint64"
+    },
+    {
+     "name": "daily_max",
+     "type": "uint64"
+    },
+    {
+     "name": "approval_threshold",
+     "type": "uint64"
+    },
+    {
+     "name": "committed_today",
+     "type": "uint64"
+    },
+    {
+     "name": "remaining_today",
+     "type": "uint64"
+    },
+    {
+     "name": "day",
+     "type": "uint32"
+    },
+    {
+     "name": "agent_status",
+     "type": "uint8"
+    }
+   ]
+  },
+  {
+   "name": "config",
+   "base": "",
+   "fields": [
+    {
+     "name": "admin",
+     "type": "name"
+    },
+    {
+     "name": "day_sec",
+     "type": "uint32"
+    },
+    {
+     "name": "pending_ttl_sec",
+     "type": "uint32"
+    },
+    {
+     "name": "auth_ttl_sec",
+     "type": "uint32"
+    }
+   ]
+  },
+  {
+   "name": "expire",
+   "base": "",
+   "fields": [
+    {
+     "name": "id",
+     "type": "uint64"
+    }
+   ]
+  },
+  {
+   "name": "fail",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "id",
+     "type": "uint64"
+    },
+    {
+     "name": "reason",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "getbudget",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    }
+   ]
+  },
+  {
+   "name": "init",
+   "base": "",
+   "fields": [
+    {
+     "name": "admin",
+     "type": "name"
+    },
+    {
+     "name": "day_sec",
+     "type": "uint32"
+    },
+    {
+     "name": "pending_ttl_sec",
+     "type": "uint32"
+    },
+    {
+     "name": "auth_ttl_sec",
+     "type": "uint32"
+    }
+   ]
+  },
+  {
+   "name": "logaudit",
+   "base": "",
+   "fields": [
+    {
+     "name": "auditor",
+     "type": "name"
+    },
+    {
+     "name": "root",
+     "type": "checksum256"
+    },
+    {
+     "name": "from_id",
+     "type": "uint64"
+    },
+    {
+     "name": "to_id",
+     "type": "uint64"
+    },
+    {
+     "name": "records",
+     "type": "uint32"
+    },
+    {
+     "name": "total",
+     "type": "uint64"
+    },
+    {
+     "name": "problems",
+     "type": "uint32"
+    },
+    {
+     "name": "note",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "payreq_row",
+   "base": "",
+   "fields": [
+    {
+     "name": "id",
+     "type": "uint64"
+    },
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "vendor_id",
+     "type": "uint64"
+    },
+    {
+     "name": "amount",
+     "type": "uint64"
+    },
+    {
+     "name": "params_hash",
+     "type": "checksum256"
+    },
+    {
+     "name": "nonce",
+     "type": "uint64"
+    },
+    {
+     "name": "status",
+     "type": "uint8"
+    },
+    {
+     "name": "day",
+     "type": "uint32"
+    },
+    {
+     "name": "approved_by",
+     "type": "name"
+    },
+    {
+     "name": "ext_network",
+     "type": "string"
+    },
+    {
+     "name": "ext_txid",
+     "type": "string"
+    },
+    {
+     "name": "note",
+     "type": "string"
+    },
+    {
+     "name": "created",
+     "type": "time_point_sec"
+    },
+    {
+     "name": "updated",
+     "type": "time_point_sec"
+    },
+    {
+     "name": "expires",
+     "type": "time_point_sec"
+    }
+   ]
+  },
+  {
+   "name": "policy_row",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "per_tx_max",
+     "type": "uint64"
+    },
+    {
+     "name": "daily_max",
+     "type": "uint64"
+    },
+    {
+     "name": "approval_threshold",
+     "type": "uint64"
+    },
+    {
+     "name": "approver",
+     "type": "name"
+    }
+   ]
+  },
+  {
+   "name": "regagent",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "owner",
+     "type": "name"
+    },
+    {
+     "name": "model_hash",
+     "type": "checksum256"
+    },
+    {
+     "name": "label",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "reinstate",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    }
+   ]
+  },
+  {
+   "name": "reject",
+   "base": "",
+   "fields": [
+    {
+     "name": "approver",
+     "type": "name"
+    },
+    {
+     "name": "id",
+     "type": "uint64"
+    },
+    {
+     "name": "reason",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "revoke",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "reason",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "rmvendor",
+   "base": "",
+   "fields": [
+    {
+     "name": "id",
+     "type": "uint64"
+    }
+   ]
+  },
+  {
+   "name": "setpolicy",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "per_tx_max",
+     "type": "uint64"
+    },
+    {
+     "name": "daily_max",
+     "type": "uint64"
+    },
+    {
+     "name": "approval_threshold",
+     "type": "uint64"
+    },
+    {
+     "name": "approver",
+     "type": "name"
+    }
+   ]
+  },
+  {
+   "name": "settle",
+   "base": "",
+   "fields": [
+    {
+     "name": "agent",
+     "type": "name"
+    },
+    {
+     "name": "id",
+     "type": "uint64"
+    },
+    {
+     "name": "ext_network",
+     "type": "string"
+    },
+    {
+     "name": "ext_txid",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "spend_row",
+   "base": "",
+   "fields": [
+    {
+     "name": "day",
+     "type": "uint32"
+    },
+    {
+     "name": "committed",
+     "type": "uint64"
+    }
+   ]
+  },
+  {
+   "name": "vendor_row",
+   "base": "",
+   "fields": [
+    {
+     "name": "id",
+     "type": "uint64"
+    },
+    {
+     "name": "network",
+     "type": "string"
+    },
+    {
+     "name": "pay_to",
+     "type": "string"
+    },
+    {
+     "name": "label",
+     "type": "string"
+    },
+    {
+     "name": "active",
+     "type": "bool"
+    },
+    {
+     "name": "key",
+     "type": "checksum256"
+    }
+   ]
+  }
+ ],
+ "actions": [
+  {
+   "name": "addvendor",
+   "type": "addvendor",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "approve",
+   "type": "approve",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "authorize",
+   "type": "authorize",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "expire",
+   "type": "expire",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "fail",
+   "type": "fail",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "getbudget",
+   "type": "getbudget",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "init",
+   "type": "init",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "logaudit",
+   "type": "logaudit",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "regagent",
+   "type": "regagent",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "reinstate",
+   "type": "reinstate",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "reject",
+   "type": "reject",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "revoke",
+   "type": "revoke",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "rmvendor",
+   "type": "rmvendor",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "setpolicy",
+   "type": "setpolicy",
+   "ricardian_contract": ""
+  },
+  {
+   "name": "settle",
+   "type": "settle",
+   "ricardian_contract": ""
+  }
+ ],
+ "tables": [
+  {
+   "name": "agents",
+   "index_type": "i64",
+   "key_names": [],
+   "key_types": [],
+   "type": "agent_row"
+  },
+  {
+   "name": "audits",
+   "index_type": "i64",
+   "key_names": [],
+   "key_types": [],
+   "type": "audit_row"
+  },
+  {
+   "name": "config",
+   "index_type": "i64",
+   "key_names": [],
+   "key_types": [],
+   "type": "config"
+  },
+  {
+   "name": "payreqs",
+   "index_type": "i64",
+   "key_names": [],
+   "key_types": [],
+   "type": "payreq_row"
+  },
+  {
+   "name": "policies",
+   "index_type": "i64",
+   "key_names": [],
+   "key_types": [],
+   "type": "policy_row"
+  },
+  {
+   "name": "spend",
+   "index_type": "i64",
+   "key_names": [],
+   "key_types": [],
+   "type": "spend_row"
+  },
+  {
+   "name": "vendors",
+   "index_type": "i64",
+   "key_names": [],
+   "key_types": [],
+   "type": "vendor_row"
+  }
+ ],
+ "ricardian_clauses": [],
+ "error_messages": [],
+ "abi_extensions": [],
+ "variants": [],
+ "action_results": [
+  {
+   "name": "addvendor",
+   "result_type": "uint64"
+  },
+  {
+   "name": "authorize",
+   "result_type": "auth_result"
+  },
+  {
+   "name": "getbudget",
+   "result_type": "budget_info"
+  },
+  {
+   "name": "logaudit",
+   "result_type": "uint64"
+  }
+ ]
+}

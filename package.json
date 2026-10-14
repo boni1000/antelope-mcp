@@ -1,0 +1,26 @@
+{
+  "name": "antelope-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for any Antelope chain (Vaulta, Telos, WAX, private): read anything, write only within on-chain permissions",
+  "type": "module",
+  "license": "MIT",
+  "bin": { "antelope-mcp": "dist/index.js" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "@wharfkit/antelope": "4.0.2",
+    "@wharfkit/signing-request": "4.0.2",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}
