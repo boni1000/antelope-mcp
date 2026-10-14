@@ -37,8 +37,8 @@ export class Signer {
     const acc = await chain.rpc('/v1/chain/get_account', { account_name: this.cfg.actor })
     const perm = acc.permissions.find((p: any) => p.perm_name === this.cfg.permission)
     if (!perm) throw new Error(`account ${this.cfg.actor} has no permission '${this.cfg.permission}'`)
-    const keys: string[] = perm.required_auth.keys.map((k: any) => PublicKey.from(k.key).toString())
-    if (!keys.includes(this.publicKey.toString())) throw new Error(`the configured key is not in ${this.authority} (keys: ${keys.join(', ') || 'none'})`)
+    const keys: string[] = perm.required_auth.keys.map((k: any) => PublicKey.from(k.key).toLegacyString())
+    if (!keys.includes(this.publicKey.toLegacyString())) throw new Error(`the configured key (${this.publicKey.toLegacyString()}) is not in ${this.authority} (keys: ${keys.join(', ') || 'none'})`)
     const linked: string[] = (perm.linked_actions ?? []).map((l: any) => `${l.account}::${l.action || '*'}`)
     this.linked = linked.length > 0
     if (this.linked) {

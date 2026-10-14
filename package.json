@@ -4,9 +4,19 @@
   "description": "MCP server for any Antelope chain (Vaulta, Telos, WAX, private): read anything, write only within on-chain permissions",
   "type": "module",
   "license": "MIT",
-  "bin": { "antelope-mcp": "dist/index.js" },
-  "files": ["dist", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
+  "bin": {
+    "antelope-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE",
+    "antelope-mcp.env.example"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
@@ -22,5 +32,29 @@
     "@types/node": "24.19.0",
     "typescript": "7.0.2",
     "vitest": "5.0.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boni1000/antelope-mcp.git"
+  },
+  "homepage": "https://github.com/boni1000/antelope-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/boni1000/antelope-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "antelope",
+    "eosio",
+    "vaulta",
+    "eos",
+    "telos",
+    "wax",
+    "blockchain",
+    "ai-agents",
+    "wharfkit",
+    "esr",
+    "anchor"
+  ],
+  "author": "boni1000"
 }
