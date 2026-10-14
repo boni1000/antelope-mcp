@@ -53,33 +53,63 @@ export function errorText(body: unknown): string {
   return b?.error?.what || b?.message || 'unknown chain API error'
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** Statuses that mean "too many requests, try later" (nginx limit_req answers 503 by default). */
+const THROTTLED = new Set([429, 503])
+const MAX_RETRIES = 4
+
 export class Chain {
   readonly client: APIClient
   private abiCache = new Map<string, ABI>()
+  private readonly minIntervalMs: number
+  private nextSlot = 0
 
-  constructor(readonly url: string, readonly timeoutMs = 15000) {
+  /** maxRps: requests per second this server sends to the node at most (public nodes rate-limit). */
+  constructor(readonly url: string, readonly timeoutMs = 15000, maxRps = 15) {
     this.url = url.replace(/\/+$/, '')
     this.client = new APIClient({ url: this.url })
+    this.minIntervalMs = 1000 / maxRps
+  }
+
+  /** Wait for this request's slot so that requests stay under maxRps. */
+  private async pace() {
+    const now = Date.now()
+    const slot = Math.max(now, this.nextSlot)
+    this.nextSlot = slot + this.minIntervalMs
+    if (slot > now) await sleep(slot - now)
   }
 
   async rpc<T = any>(path: string, body: unknown = {}): Promise<T> {
-    let res: Response
-    try {
-      res = await fetch(`${this.url}${path}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(this.timeoutMs),
-      })
-    } catch (e) {
-      throw new ChainError(`chain API unreachable: ${(e as Error).message}`)
+    let res!: Response
+    let text = ''
+    for (let attempt = 0; ; attempt++) {
+      await this.pace()
+      try {
+        res = await fetch(`${this.url}${path}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(this.timeoutMs),
+        })
+        text = await res.text()
+      } catch (e) {
+        // Connection refused, reset or cut mid-response ("terminated"): retry, then give up.
+        if (attempt >= MAX_RETRIES) throw new ChainError(`chain API unreachable: ${(e as Error).message}`)
+        await sleep(500 * 2 ** attempt)
+        continue
+      }
+      if (!THROTTLED.has(res.status) || attempt >= MAX_RETRIES) break
+      // Rate limited or briefly unavailable: back off (Retry-After if given) and try again.
+      const retryAfter = Number(res.headers.get('retry-after'))
+      await sleep(retryAfter > 0 ? Math.min(retryAfter, 30) * 1000 : 500 * 2 ** attempt)
     }
-    const text = await res.text()
     let json: any
     try {
       json = text ? JSON.parse(text) : {}
     } catch {
-      throw new ChainError(`chain API returned non-JSON (HTTP ${res.status})`, res.status)
+      const hint = THROTTLED.has(res.status) ? ' — the node is rate-limiting this server; lower ANTELOPE_MAX_RPS' : ''
+      throw new ChainError(`chain API returned non-JSON (HTTP ${res.status})${hint}`, res.status)
     }
     if (!res.ok) throw new ChainError(errorText(json), res.status)
     return json as T

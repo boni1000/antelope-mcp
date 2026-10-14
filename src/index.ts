@@ -15,7 +15,7 @@ export const VERSION = '0.1.0'
 
 async function main() {
   const cfg = loadConfig()
-  const chain = new Chain(cfg.url)
+  const chain = new Chain(cfg.url, 15000, cfg.maxRps)
   if (cfg.chainId) {
     // Refuse to run against the wrong chain (e.g. a mainnet URL in a testnet setup).
     const info = await chain.info()

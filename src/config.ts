@@ -11,6 +11,8 @@ export interface Config {
   txExpireSeconds: number
   /** validity of transactions the server signs itself (short: the API node's answer is advisory) */
   pushExpireSeconds: number
+  /** requests per second to the chain API at most */
+  maxRps: number
   signer?: SignerConfig
 }
 
@@ -64,6 +66,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     hyperionUrl: httpUrl(env.ANTELOPE_HYPERION_URL, 'ANTELOPE_HYPERION_URL'),
     txExpireSeconds: seconds(env.ANTELOPE_TX_EXPIRE_SECONDS, 'ANTELOPE_TX_EXPIRE_SECONDS', 300, 30, 3600),
     pushExpireSeconds: seconds(env.ANTELOPE_PUSH_EXPIRE_SECONDS, 'ANTELOPE_PUSH_EXPIRE_SECONDS', 30, 10, 300),
+    maxRps: seconds(env.ANTELOPE_MAX_RPS, 'ANTELOPE_MAX_RPS', 15, 1, 100),
     signer,
   }
 }

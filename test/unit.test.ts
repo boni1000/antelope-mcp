@@ -109,3 +109,54 @@ describe('keyFromFile', () => {
     expect(c.signer).toEqual({ actor: 'alice', permission: 'mcp', privateKey: '5K', allowedActions: ['eosio.token::transfer'] })
   })
 })
+
+describe('Chain.rpc rate limiting', () => {
+  it('retries on 503 and paces requests', async () => {
+    const { Chain } = await import('../src/chain.js')
+    const calls: number[] = []
+    const responses = [new Response('<html>503</html>', { status: 503 }), new Response('{"ok":1}', { status: 200 }), new Response('{"ok":2}', { status: 200 })]
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async () => { calls.push(Date.now()); return responses.shift()! }) as any
+    try {
+      const c = new Chain('https://node.example', 5000, 10)
+      expect(await c.rpc('/v1/chain/get_info')).toEqual({ ok: 1 })
+      expect(await c.rpc('/v1/chain/get_info')).toEqual({ ok: 2 })
+      expect(calls.length).toBe(3)
+      expect(calls[1] - calls[0]).toBeGreaterThanOrEqual(450) // backoff after 503
+      expect(calls[2] - calls[1]).toBeGreaterThanOrEqual(90) // 10 requests/s at most
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  it('reports persistent throttling clearly', async () => {
+    const { Chain } = await import('../src/chain.js')
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response('busy', { status: 503, headers: { 'retry-after': '0' } })) as any
+    try {
+      const c = new Chain('https://node.example', 5000, 100)
+      await expect(c.rpc('/x')).rejects.toThrow(/rate-limiting this server/)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  }, 20000)
+})
+
+describe('Chain.rpc network errors', () => {
+  it('retries a connection cut mid-response', async () => {
+    const { Chain } = await import('../src/chain.js')
+    let n = 0
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async () => {
+      n++
+      if (n === 1) return { status: 200, headers: new Headers(), text: async () => { throw new TypeError('terminated') } }
+      return new Response('{"ok":true}', { status: 200 })
+    }) as any
+    try {
+      expect(await new Chain('https://node.example', 5000, 100).rpc('/x')).toEqual({ ok: true })
+      expect(n).toBe(2)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+})

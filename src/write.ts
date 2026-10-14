@@ -11,7 +11,7 @@ import { PackedTransaction, SignedTransaction, type Transaction } from '@wharfki
 import { SigningRequest } from '@wharfkit/signing-request'
 import { deflateRawSync, inflateRawSync } from 'node:zlib'
 import { z } from 'zod'
-import { exceptText, type Chain } from './chain.js'
+import { exceptText, type Chain, type ChainError } from './chain.js'
 import type { Config } from './config.js'
 import type { Signer } from './signer.js'
 import { authority, fail, name, ok } from './util.js'
@@ -35,22 +35,53 @@ function toActions(inputs: ActionInput[]) {
   }))
 }
 
-/** Scan blocks from `from` to head for the transaction; returns the block number or undefined. */
 /** wait_for_transaction scans at most this far back (about an hour at 0.5 s blocks). */
 export const MAX_LOOKBACK_BLOCKS = 7200
 
-export async function findInBlocks(chain: Chain, id: string, from: number, deadlineMs: number): Promise<number | undefined> {
+/**
+ * MCP clients commonly cancel a tool call after 60 s, so one call works for at most this long
+ * and then reports where it stopped; the agent calls again to continue.
+ */
+export const CALL_BUDGET_SECONDS = 50
+
+/**
+ * Find the block that contains a transaction: by the transaction-status API where the node has
+ * it, else by reading blocks from `from` on. Returns the block, or how far the scan got.
+ */
+export async function findInBlocks(chain: Chain, id: string, from: number, deadlineMs: number): Promise<{ block?: number; next: number }> {
+  // Fast path: nodes with the transaction-status API answer directly, without reading blocks.
+  let statusApi = true
+  while (statusApi && Date.now() < deadlineMs) {
+    try {
+      const s = await chain.rpc('/v1/chain/get_transaction_status', { id })
+      if (s.block_number && (s.state === 'IN_BLOCK' || s.state === 'IRREVERSIBLE')) return { block: Number(s.block_number), next: Number(s.block_number) + 1 }
+      await new Promise((r) => setTimeout(r, 1000))
+    } catch (e) {
+      if (!/unknown endpoint|not found|not enabled/i.test((e as Error).message) && (e as ChainError).status !== 404) throw e
+      statusApi = false // fall back to scanning blocks
+    }
+  }
   let next = from
   while (Date.now() < deadlineMs) {
     const info = await chain.info()
-    while (next <= info.head_block_num) {
+    while (next <= info.head_block_num && Date.now() < deadlineMs) {
       const b = await chain.rpc('/v1/chain/get_block', { block_num_or_id: next })
-      if ((b.transactions ?? []).some((t: any) => (typeof t.trx === 'string' ? t.trx : t.trx.id) === id)) return next
+      if ((b.transactions ?? []).some((t: any) => (typeof t.trx === 'string' ? t.trx : t.trx.id) === id)) return { block: next, next: next + 1 }
       next++
     }
-    await new Promise((r) => setTimeout(r, 500))
+    if (Date.now() < deadlineMs) await new Promise((r) => setTimeout(r, 500))
   }
-  return undefined
+  return { next }
+}
+
+/** Wait until `block` is irreversible or the deadline passes. */
+async function waitIrreversible(chain: Chain, block: number, deadlineMs: number) {
+  while (true) {
+    const info = await chain.info()
+    if (info.last_irreversible_block_num >= block) return true
+    if (Date.now() >= deadlineMs) return false
+    await new Promise((r) => setTimeout(r, 1000))
+  }
 }
 
 async function dryRun(chain: Chain, tx: Transaction) {
@@ -98,12 +129,12 @@ export function registerWriteTools(server: McpServer, chain: Chain, cfg: Config,
 
   server.registerTool('wait_for_transaction', {
     title: 'Wait for a transaction',
-    description: 'Wait until a transaction (by id) appears in a block, scanning blocks from `from_block`; optionally until that block is irreversible. Works on any node.',
+    description: `Wait until a transaction (by id) is in a block, and optionally until that block is irreversible. Works on any node (reads blocks from from_block where the node has no transaction-status API). One call waits at most ${CALL_BUDGET_SECONDS} s; if it returns found: false or irreversible: false, call it again with the returned from_block to continue.`,
     inputSchema: {
       transaction_id: z.string().regex(/^[0-9a-f]{64}$/),
-      from_block: z.number().int().min(1).describe('block number to start scanning from (from prepare_transaction or push_transaction)'),
+      from_block: z.number().int().min(1).describe('block number to start from (from prepare_transaction, push_transaction, or a previous call)'),
       until: z.enum(['included', 'irreversible']).default('included'),
-      timeout_seconds: z.number().int().min(5).max(600).default(90),
+      timeout_seconds: z.number().int().min(5).max(CALL_BUDGET_SECONDS).default(45),
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ transaction_id, from_block, until, timeout_seconds }) => {
@@ -114,16 +145,18 @@ export function registerWriteTools(server: McpServer, chain: Chain, cfg: Config,
       }
       if (from_block > head + 120) return fail(new Error(`from_block ${from_block} is ahead of the head block ${head}`))
       const deadline = Date.now() + timeout_seconds * 1000
-      const block = await findInBlocks(chain, transaction_id, from_block, deadline)
-      if (!block) return fail(new Error(`transaction ${transaction_id} not found in blocks ${from_block}… within ${timeout_seconds} s (not signed yet, expired, or started scanning too late)`))
-      let irreversible = false
-      while (true) {
-        const info = await chain.info()
-        irreversible = info.last_irreversible_block_num >= block
-        if (irreversible || until === 'included' || Date.now() >= deadline) break
-        await new Promise((r) => setTimeout(r, 1000))
+      const { block, next } = await findInBlocks(chain, transaction_id, from_block, deadline)
+      if (!block) {
+        return ok({
+          transaction_id, found: false, checked_blocks: `${from_block}–${next - 1}`, from_block: next,
+          note: 'Not in these blocks yet. Call wait_for_transaction again with this from_block to continue. If the transaction has passed its expiry and is still not found, it was never included.',
+        })
       }
-      return ok({ transaction_id, block, irreversible, ...(until === 'irreversible' && !irreversible ? { note: 'timed out before irreversibility' } : {}) })
+      const irreversible = until === 'irreversible' ? await waitIrreversible(chain, block, deadline) : (await chain.info()).last_irreversible_block_num >= block
+      return ok({
+        transaction_id, found: true, block, irreversible,
+        ...(until === 'irreversible' && !irreversible ? { from_block: block, note: 'In a block but not yet irreversible; call again with until: irreversible to keep waiting.' } : {}),
+      })
     } catch (e) { return fail(e) }
   })
 
@@ -150,18 +183,14 @@ export function registerWriteTools(server: McpServer, chain: Chain, cfg: Config,
       const res = await chain.rpc('/v1/chain/send_transaction', PackedTransaction.fromSigned(signed).toJSON())
       const id = String(res.transaction_id ?? tx.id)
       // The API node's answer is advisory: confirm the transaction is really in a block.
-      const deadline = Date.now() + (cfg.pushExpireSeconds + 15) * 1000
-      const block = await findInBlocks(chain, id, headBlock, deadline)
-      if (!block) return fail(new Error(`transaction ${id} was accepted by the API node but not seen in a block within ${cfg.pushExpireSeconds + 15} s; it has expired`))
-      let irreversible = false
-      if (wait === 'irreversible') {
-        while (Date.now() < deadline + 600_000) {
-          const info = await chain.info()
-          if (info.last_irreversible_block_num >= block) { irreversible = true; break }
-          await new Promise((r) => setTimeout(r, 1000))
-        }
-      }
-      return ok({ transaction_id: id, block, irreversible, signed_as: signer.authority, ...dry })
+      const started = Date.now()
+      const { block } = await findInBlocks(chain, id, headBlock, started + Math.min(cfg.pushExpireSeconds + 10, CALL_BUDGET_SECONDS) * 1000)
+      if (!block) return fail(new Error(`transaction ${id} was accepted by the API node but not seen in a block within ${cfg.pushExpireSeconds + 10} s; check with wait_for_transaction from block ${headBlock} — it can no longer be included after ${String(tx.expiration)} UTC`))
+      const irreversible = wait === 'irreversible' ? await waitIrreversible(chain, block, started + CALL_BUDGET_SECONDS * 1000) : false
+      return ok({
+        transaction_id: id, block, irreversible, signed_as: signer.authority, ...dry,
+        ...(wait === 'irreversible' && !irreversible ? { note: 'Included but not yet irreversible; call wait_for_transaction with until: irreversible and from_block to keep waiting.', from_block: block } : {}),
+      })
     } catch (e) { return fail(e) }
   })
 }
