@@ -36,6 +36,9 @@ function toActions(inputs: ActionInput[]) {
 }
 
 /** Scan blocks from `from` to head for the transaction; returns the block number or undefined. */
+/** wait_for_transaction scans at most this far back (about an hour at 0.5 s blocks). */
+export const MAX_LOOKBACK_BLOCKS = 7200
+
 export async function findInBlocks(chain: Chain, id: string, from: number, deadlineMs: number): Promise<number | undefined> {
   let next = from
   while (Date.now() < deadlineMs) {
@@ -74,19 +77,21 @@ export function registerWriteTools(server: McpServer, chain: Chain, cfg: Config,
   }, async ({ actions, expire_seconds }) => {
     try {
       const acts = toActions(actions)
-      const tx = await chain.transaction(acts, expire_seconds)
+      const { tx, headBlock } = await chain.transactionAt(acts, expire_seconds)
       let dry: Record<string, unknown> | { dry_run_error: string }
       try { dry = await dryRun(chain, tx) } catch (e) { dry = { dry_run_error: (e as Error).message } }
       const chainId = cfg.chainId ?? (await chain.info()).chain_id
-      const req = await SigningRequest.create({ actions: tx.actions, chainId, broadcast: true }, { zlib, abiProvider: { getAbi: (a) => chain.abi(String(a)) } })
+      // The full transaction goes into the request (expiry and reference block included), so the
+      // wallet signs exactly this transaction and transaction_id below is the id it will have.
+      const req = await SigningRequest.create({ transaction: tx, chainId, broadcast: true }, { zlib, abiProvider: { getAbi: (a) => chain.abi(String(a)) } })
       return ok({
         transaction: JSON.parse(JSON.stringify(tx)),
         transaction_id: String(tx.id),
         expires: String(tx.expiration),
         esr: req.encode(),
         dry_run: dry,
-        how_to_sign: 'Open the esr link in Anchor (or paste it into Anchor > Tools > Signing Request), review the actions and sign. Then call wait_for_transaction with transaction_id to confirm it is in a block.',
-        from_block: tx.ref_block_num,
+        how_to_sign: `Open the esr link in Anchor (Import Transaction, or paste it into a signing-request field), review the actions and sign before ${String(tx.expiration)} UTC. Then call wait_for_transaction with transaction_id and from_block to confirm it is in a block.`,
+        from_block: headBlock,
       })
     } catch (e) { return fail(e) }
   })
@@ -103,6 +108,11 @@ export function registerWriteTools(server: McpServer, chain: Chain, cfg: Config,
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ transaction_id, from_block, until, timeout_seconds }) => {
     try {
+      const head = (await chain.info()).head_block_num
+      if (from_block < head - MAX_LOOKBACK_BLOCKS) {
+        return fail(new Error(`from_block ${from_block} is ${head - from_block} blocks behind the head (${head}); use the from_block returned by prepare_transaction or push_transaction (at most ${MAX_LOOKBACK_BLOCKS} blocks back)`))
+      }
+      if (from_block > head + 120) return fail(new Error(`from_block ${from_block} is ahead of the head block ${head}`))
       const deadline = Date.now() + timeout_seconds * 1000
       const block = await findInBlocks(chain, transaction_id, from_block, deadline)
       if (!block) return fail(new Error(`transaction ${transaction_id} not found in blocks ${from_block}… within ${timeout_seconds} s (not signed yet, expired, or started scanning too late)`))
@@ -133,7 +143,7 @@ export function registerWriteTools(server: McpServer, chain: Chain, cfg: Config,
         if (!signer.allows(a.contract, a.action)) return fail(new Error(`${a.contract}::${a.action} is not allowed for ${signer.authority}${signer.linked ? ' (not linked to this permission)' : ' (set ANTELOPE_ALLOWED_ACTIONS)'}`))
       }
       const auth = [{ actor: signer.cfg.actor, permission: signer.cfg.permission }]
-      const tx = await chain.transaction(actions.map((a) => ({ account: a.contract, name: a.action, authorization: auth, data: a.data })), cfg.pushExpireSeconds)
+      const { tx, headBlock } = await chain.transactionAt(actions.map((a) => ({ account: a.contract, name: a.action, authorization: auth, data: a.data })), cfg.pushExpireSeconds)
       const dry = await dryRun(chain, tx)
       const chainId = cfg.chainId ?? (await chain.info()).chain_id
       const signed = SignedTransaction.from({ ...tx, signatures: [signer.key.signDigest(tx.signingDigest(chainId))] })
@@ -141,7 +151,7 @@ export function registerWriteTools(server: McpServer, chain: Chain, cfg: Config,
       const id = String(res.transaction_id ?? tx.id)
       // The API node's answer is advisory: confirm the transaction is really in a block.
       const deadline = Date.now() + (cfg.pushExpireSeconds + 15) * 1000
-      const block = await findInBlocks(chain, id, Number(tx.ref_block_num) > 0 ? res.processed?.block_num ?? 1 : 1, deadline)
+      const block = await findInBlocks(chain, id, headBlock, deadline)
       if (!block) return fail(new Error(`transaction ${id} was accepted by the API node but not seen in a block within ${cfg.pushExpireSeconds + 15} s; it has expired`))
       let irreversible = false
       if (wait === 'irreversible') {

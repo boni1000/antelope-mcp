@@ -13,6 +13,13 @@ import {
   type ABIDef,
 } from '@wharfkit/antelope'
 
+export type ActionInput = {
+  account: string
+  name: string
+  authorization: { actor: string; permission: string }[]
+  data: Record<string, unknown>
+}
+
 export class ChainError extends Error {
   constructor(message: string, readonly status?: number) {
     super(message)
@@ -92,12 +99,20 @@ export class Chain {
     return abi
   }
 
-  /** An unsigned transaction with the given actions, valid for `expireSeconds`. */
-  async transaction(actions: { account: string; name: string; authorization: { actor: string; permission: string }[]; data: Record<string, unknown> }[], expireSeconds = 60) {
+  /**
+   * An unsigned transaction with the given actions, valid for `expireSeconds`, plus the head
+   * block number when it was built: the transaction can only appear in a later block.
+   */
+  async transactionAt(actions: ActionInput[], expireSeconds = 60): Promise<{ tx: Transaction; headBlock: number }> {
     const built: Action[] = []
     for (const a of actions) built.push(Action.from(a, await this.abi(a.account)))
     const info = await this.client.v1.chain.get_info()
-    return Transaction.from({ ...info.getTransactionHeader(expireSeconds), actions: built })
+    const tx = Transaction.from({ ...info.getTransactionHeader(expireSeconds), actions: built })
+    return { tx, headBlock: Number(info.head_block_num) }
+  }
+
+  async transaction(actions: ActionInput[], expireSeconds = 60): Promise<Transaction> {
+    return (await this.transactionAt(actions, expireSeconds)).tx
   }
 
   private static packed(tx: Transaction) {
