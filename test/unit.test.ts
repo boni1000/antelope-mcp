@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { describeAbi, ricardianSummary } from '../src/abi.js'
 import { errorText, exceptText } from '../src/chain.js'
-import { loadConfig } from '../src/config.js'
+import { keyFromFile, loadConfig } from '../src/config.js'
 import { authority, name } from '../src/util.js'
 
 const fixture = (f: string) => JSON.parse(readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8'))
@@ -91,6 +91,21 @@ describe('loadConfig', () => {
     expect(() => loadConfig({})).toThrow(/ANTELOPE_URL is required/)
     expect(() => loadConfig({ ANTELOPE_URL: 'ftp://x' })).toThrow(/http/)
     expect(() => loadConfig({ ANTELOPE_URL: 'https://x', ANTELOPE_CHAIN_ID: 'abc' })).toThrow(/64 hex/)
-    expect(loadConfig({ ANTELOPE_URL: 'https://x.org/', ANTELOPE_CHAIN_ID: 'A'.repeat(64) })).toEqual({ url: 'https://x.org', chainId: 'a'.repeat(64), chainName: undefined, hyperionUrl: undefined })
+    expect(loadConfig({ ANTELOPE_URL: 'https://x.org/', ANTELOPE_CHAIN_ID: 'A'.repeat(64) })).toMatchObject({ url: 'https://x.org', chainId: 'a'.repeat(64), txExpireSeconds: 300, pushExpireSeconds: 30, signer: undefined })
+  })
+})
+
+describe('keyFromFile', () => {
+  it('reads a bare key or a cleos key file', () => {
+    expect(keyFromFile('5KEY\n')).toBe('5KEY')
+    expect(keyFromFile('Private key: 5KEY\nPublic key: EOSpub\n')).toBe('5KEY')
+    expect(() => keyFromFile('one two')).toThrow(/key file/)
+    expect(() => keyFromFile('')).toThrow(/key file/)
+  })
+  it('needs the signer when a key is configured, and vice versa', () => {
+    expect(() => loadConfig({ ANTELOPE_URL: 'https://x', ANTELOPE_PRIVATE_KEY: '5K' })).toThrow(/ANTELOPE_SIGNER/)
+    expect(() => loadConfig({ ANTELOPE_URL: 'https://x', ANTELOPE_SIGNER: 'alice@mcp' })).toThrow(/ANTELOPE_PRIVATE_KEY/)
+    const c = loadConfig({ ANTELOPE_URL: 'https://x', ANTELOPE_SIGNER: 'alice@mcp', ANTELOPE_PRIVATE_KEY_FILE: '/k', ANTELOPE_ALLOWED_ACTIONS: 'eosio.token::transfer' }, () => 'Private key: 5K\n')
+    expect(c.signer).toEqual({ actor: 'alice', permission: 'mcp', privateKey: '5K', allowedActions: ['eosio.token::transfer'] })
   })
 })
