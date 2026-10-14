@@ -36,11 +36,20 @@ function account(a: any) {
 export function registerReadTools(server: McpServer, chain: Chain, cfg: Config) {
   server.registerTool('chain_info', {
     title: 'Chain information',
-    description: `Identity and state of the connected Antelope chain${cfg.chainName ? ` (${cfg.chainName})` : ''}: chain id, node version, head and irreversible block, and how far finality lags behind the head.`,
+    description: `Identity and state of the connected Antelope chain${cfg.chainName ? ` (${cfg.chainName})` : ''}: chain id, node version, head and irreversible block, how far finality lags behind the head, and the consensus mode (Savanna or legacy) that explains that lag.`,
     annotations: RO,
   }, async () => {
     try {
-      const i = await chain.info()
+      const [i, fin] = await Promise.all([
+        chain.info(),
+        chain.rpc('/v1/chain/get_finalizer_info').catch(() => null), // Spring 1.0+ only
+      ])
+      const policy = fin?.active_finalizer_policy
+      const consensus = !fin
+        ? 'unknown (node does not offer get_finalizer_info; it predates Spring)'
+        : policy
+          ? `Savanna: ${policy.finalizers?.length ?? 0} finalizers (policy generation ${policy.generation}), finality within seconds`
+          : 'legacy DPoS (Savanna not activated): a block is final after confirmation by 2/3 of producers, typically tens of seconds'
       return ok({
         ...(cfg.chainName ? { name: cfg.chainName } : {}),
         chain_id: i.chain_id,
@@ -50,6 +59,7 @@ export function registerReadTools(server: McpServer, chain: Chain, cfg: Config) 
         head_block_producer: i.head_block_producer,
         irreversible_block: i.last_irreversible_block_num,
         finality_lag_seconds: (i.head_block_num - i.last_irreversible_block_num) / 2,
+        consensus,
       })
     } catch (e) { return fail(e) }
   })
