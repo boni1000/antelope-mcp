@@ -32,11 +32,8 @@ immediate answer is only advisory.
 
 ## Install
 
-Requires Node ≥ 20.
-
-```bash
-npm install -g antelope-mcp      # or run from a clone: npm ci && npm run build
-```
+Requires Node ≥ 20. Nothing to install by hand: MCP clients start it with `npx -y antelope-mcp`.
+To install it globally instead: `npm install -g antelope-mcp`. From a clone: `npm ci && npm run build`.
 
 Configuration is by environment variables, see [antelope-mcp.env.example](antelope-mcp.env.example).
 Only `ANTELOPE_URL` is required.
@@ -47,7 +44,8 @@ Only `ANTELOPE_URL` is required.
 {
   "mcpServers": {
     "antelope": {
-      "command": "antelope-mcp",
+      "command": "npx",
+      "args": ["-y", "antelope-mcp"],
       "env": {
         "ANTELOPE_URL": "https://jungle4.greymass.com",
         "ANTELOPE_CHAIN_NAME": "Jungle4"
@@ -55,6 +53,12 @@ Only `ANTELOPE_URL` is required.
     }
   }
 }
+```
+
+With Claude Code from the command line:
+
+```bash
+claude mcp add antelope -e ANTELOPE_URL=https://jungle4.greymass.com -- npx -y antelope-mcp
 ```
 
 The server speaks MCP over stdio, so it can also run on another machine through SSH

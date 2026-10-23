@@ -8,9 +8,10 @@
     "antelope-mcp": "dist/index.js"
   },
   "files": [
-    "dist",
+    "dist/*.js",
     "README.md",
     "SECURITY.md",
+    "CHANGELOG.md",
     "LICENSE",
     "antelope-mcp.env.example"
   ],
@@ -20,7 +21,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.31.0",
