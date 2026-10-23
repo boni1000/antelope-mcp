@@ -19,12 +19,14 @@ function account(a: any) {
     // Actions this permission is linked to (linkauth); empty for owner/active.
     linked_actions: (p.linked_actions ?? []).map((l: any) => `${l.account}::${l.action || '*'}`),
   })
-  const res = (r: any) => (r ? { used: r.used, available: r.available, max: r.max } : undefined)
+  // -1 means unlimited (system and privileged accounts).
+  const lim = (v: any) => (Number(v) === -1 ? 'unlimited' : v)
+  const res = (r: any) => (r ? { used: r.used, available: lim(r.available), max: lim(r.max) } : undefined)
   return {
     account: a.account_name,
     created: a.created,
     ...(a.core_liquid_balance ? { core_liquid_balance: a.core_liquid_balance } : {}),
-    ram: { used_bytes: a.ram_usage, quota_bytes: a.ram_quota },
+    ram: { used_bytes: a.ram_usage, quota_bytes: lim(a.ram_quota) },
     cpu_us: res(a.cpu_limit),
     net_bytes: res(a.net_limit),
     ...(a.privileged ? { privileged: true } : {}),

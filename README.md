@@ -112,7 +112,11 @@ agent is misled, the chain refuses any other action from that key.
 - A five-producer private network (Spring 1.2.2): all tools, including a scoped push as
   `boni@mcp` linked to a single test action, with the unlinked actions refused and a failing
   action caught by the dry run.
-- Vaulta mainnet (`https://eos.greymass.com`): read tools, simulation, transaction status.
+- Vaulta (`eos.greymass.com`), Telos (`telos.greymass.com`), WAX (`wax.greymass.com`) and the
+  Jungle4 testnet (`jungle4.greymass.com`): every tool except a signed push — reads, secondary
+  indexes, simulation, transaction status, and `prepare_transaction` with a successful dry run.
+  `chain_info` tells Savanna chains (finality in about a second) from legacy ones (tens of
+  seconds) and from forks that predate Spring, such as WAX's.
 
 Nodes that have `read-only-threads = 0` (common) cannot serve `send_read_only_transaction`; the
 server then falls back to a dry run under the contract's own authority, which gives the same
