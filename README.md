@@ -32,13 +32,15 @@ immediate answer is only advisory.
 
 ## Install
 
-Requires Node ≥ 20. Nothing to install by hand: MCP clients start it with `npx`, from the
-ready-built package attached to each [GitHub release](https://github.com/boni1000/antelope-mcp/releases):
+Requires Node ≥ 20. Nothing to install by hand: MCP clients start it with `npx` from
+[npm](https://www.npmjs.com/package/antelope-mcp):
 
 ```bash
-npx -y https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz
+npx -y antelope-mcp
 ```
 
+The same package is attached to each [GitHub release](https://github.com/boni1000/antelope-mcp/releases)
+(`npx -y https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz`).
 Or build the latest `main` on first start (slower): `npx -y github:boni1000/antelope-mcp`.
 From a clone: `npm ci && npm run build`, then `node dist/index.js`.
 
@@ -52,7 +54,7 @@ Only `ANTELOPE_URL` is required.
   "mcpServers": {
     "antelope": {
       "command": "npx",
-      "args": ["-y", "https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz"],
+      "args": ["-y", "antelope-mcp"],
       "env": {
         "ANTELOPE_URL": "https://jungle4.greymass.com",
         "ANTELOPE_CHAIN_NAME": "Jungle4"
@@ -66,11 +68,11 @@ With Claude Code from the command line:
 
 ```bash
 claude mcp add antelope -e ANTELOPE_URL=https://jungle4.greymass.com -- \
-  npx -y https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz
+  npx -y antelope-mcp
 ```
 
 The server speaks MCP over stdio, so it can also run on another machine through SSH, with the key
-staying on that machine: install it there with `npm install -g https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz`, then use
+staying on that machine: install it there with `npm install -g antelope-mcp`, then use
 `"command": "ssh", "args": ["myserver", "antelope-mcp"]`.
 
 ## Tools
