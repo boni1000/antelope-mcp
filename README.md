@@ -36,7 +36,7 @@ Requires Node ≥ 20. Nothing to install by hand: MCP clients start it with `npx
 ready-built package attached to each [GitHub release](https://github.com/boni1000/antelope-mcp/releases):
 
 ```bash
-npx -y https://github.com/boni1000/antelope-mcp/releases/download/v0.1.0/antelope-mcp-0.1.0.tgz
+npx -y https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz
 ```
 
 Or build the latest `main` on first start (slower): `npx -y github:boni1000/antelope-mcp`.
@@ -52,7 +52,7 @@ Only `ANTELOPE_URL` is required.
   "mcpServers": {
     "antelope": {
       "command": "npx",
-      "args": ["-y", "https://github.com/boni1000/antelope-mcp/releases/download/v0.1.0/antelope-mcp-0.1.0.tgz"],
+      "args": ["-y", "https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz"],
       "env": {
         "ANTELOPE_URL": "https://jungle4.greymass.com",
         "ANTELOPE_CHAIN_NAME": "Jungle4"
@@ -65,18 +65,19 @@ Only `ANTELOPE_URL` is required.
 With Claude Code from the command line:
 
 ```bash
-claude mcp add antelope -e ANTELOPE_URL=https://jungle4.greymass.com -- \\
-  npx -y https://github.com/boni1000/antelope-mcp/releases/download/v0.1.0/antelope-mcp-0.1.0.tgz
+claude mcp add antelope -e ANTELOPE_URL=https://jungle4.greymass.com -- \
+  npx -y https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz
 ```
 
-The server speaks MCP over stdio, so it can also run on another machine through SSH
-(`"command": "ssh", "args": ["myserver", "antelope-mcp"]`) with the key staying on that machine.
+The server speaks MCP over stdio, so it can also run on another machine through SSH, with the key
+staying on that machine: install it there with `npm install -g https://github.com/boni1000/antelope-mcp/releases/download/v0.1.1/antelope-mcp-0.1.1.tgz`, then use
+`"command": "ssh", "args": ["myserver", "antelope-mcp"]`.
 
 ## Tools
 
 | Tool | Needs a key | What it does |
 |---|---|---|
-| `chain_info` | no | chain id, node version, head and irreversible block, finality lag |
+| `chain_info` | no | chain id, node version, head and irreversible block, finality lag, consensus (Savanna or legacy) |
 | `get_account` | no | resources, permissions with keys and linked actions |
 | `get_balances` | no | token balances at a token contract |
 | `describe_contract` | no | actions (fields, return types, Ricardian titles) and tables from the ABI |
@@ -86,7 +87,7 @@ The server speaks MCP over stdio, so it can also run on another machine through 
 | `get_transaction` | no | status by id; actions too if a Hyperion URL is configured |
 | `call_readonly_action` | no | run an action without committing: return value, console; `as` to simulate an authority |
 | `prepare_transaction` | no | validate, dry-run, return unsigned transaction + `esr://` link for a wallet |
-| `wait_for_transaction` | no | wait until a transaction is in a block, optionally irreversible (scans blocks, works on any node) |
+| `wait_for_transaction` | no | wait until a transaction is in a block, optionally irreversible; uses the node's status API or reads blocks, so it works on any node |
 | `push_transaction` | **yes** | sign as the configured authority, only allowed actions, dry-run first, confirm inclusion |
 
 ### Example session
@@ -128,7 +129,8 @@ agent is misled, the chain refuses any other action from that key.
   Jungle4 testnet (`jungle4.greymass.com`): every tool except a signed push — reads, secondary
   indexes, simulation, transaction status, and `prepare_transaction` with a successful dry run.
   `chain_info` tells Savanna chains (finality in about a second) from legacy ones (tens of
-  seconds) and from forks that predate Spring, such as WAX's.
+  seconds) and from forks that predate Spring, such as WAX's. With `ANTELOPE_HYPERION_URL`
+  (`https://jungle4.cryptolions.io`), `get_transaction` also returns the actions and their data.
 
 Nodes that have `read-only-threads = 0` (common) cannot serve `send_read_only_transaction`; the
 server then falls back to a dry run under the contract's own authority, which gives the same

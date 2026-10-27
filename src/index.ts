@@ -11,7 +11,7 @@ import { registerReadTools } from './read.js'
 import { Signer } from './signer.js'
 import { registerWriteTools } from './write.js'
 
-export const VERSION = '0.1.0'
+export const VERSION = '0.1.1'
 
 async function main() {
   const cfg = loadConfig()

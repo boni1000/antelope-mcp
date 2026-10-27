@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 — 2026-10-27
+
+Security update of dependencies; no change in behaviour.
+
+- `@modelcontextprotocol/sdk` 1.31.0 → 1.32.1 (GHSA-22jm-h49p-29qw, GHSA-6prh-2h8m-c8cw,
+  GHSA-46jr-4wx8-v453, GHSA-rvq5-wwqv-78pq; these concern the SDK's HTTP transport and auth,
+  which this stdio server does not use), `zod` 4.6.5 → 4.6.7 (GHSA-mrhx-c7xc-m3w5: memory
+  exhaustion while validating oversized input, which applies to tool arguments). `npm audit`: 0.
+- README: corrected the `claude mcp add` example, the SSH setup and the Hyperion example endpoint.
+
 ## 0.1.0 — 2026-10-23
 
 First release.
